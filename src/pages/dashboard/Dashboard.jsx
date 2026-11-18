@@ -1,33 +1,109 @@
 
+import {
+  FaUsers,
+  FaUserMd,
+  FaCalendarCheck,
+  FaBed,
+  FaRupeeSign,
+  FaFileInvoiceDollar,
+} from "react-icons/fa";
+
+import StatCard from "../../components/dashboard/StatCard";
+import AppointmentChart from "../../components/dashboard/AppointmentChart";
+import DepartmentChart from "../../components/dashboard/DepartmentChart";
+import RecentActivities from "../../components/dashboard/RecentActivities";
+
+import { dashboardStats } from "../../data/dashboardData";
 import { useAuth } from "../../context/AuthContext";
 
+const statIcons = {
+  patients: FaUsers,
+  doctors: FaUserMd,
+  appointments: FaCalendarCheck,
+  beds: FaBed,
+  revenue: FaRupeeSign,
+  billing: FaFileInvoiceDollar,
+};
+
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+
+  const displayName =
+    user?.firstName || user?.username || "User";
 
   return (
-    <div className="min-h-screen bg-slate-100 p-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-3xl font-bold text-slate-800">
+    <div className="space-y-8">
+
+      {/* Welcome Section */}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">
             Hospital Dashboard
           </h1>
 
-          <p className="mt-3 text-slate-600">
-            Welcome, {user?.firstName || user?.username}!
-          </p>
-
           <p className="mt-2 text-sm text-slate-500">
-            Your authentication is working.
+            Welcome back, {displayName}! Here's your hospital overview.
           </p>
+        </div>
 
-          <button
-            onClick={logout}
-            className="mt-6 rounded-xl bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700"
-          >
-            Logout
-          </button>
+        <div className="rounded-xl bg-blue-50 px-5 py-3">
+          <p className="text-xs font-medium text-blue-600">
+            Dashboard Status
+          </p>
+          <p className="mt-1 font-bold text-blue-800">
+            System Overview
+          </p>
         </div>
       </div>
+
+      {/* Statistics Cards */}
+      <section>
+        <div className="mb-5">
+          <h2 className="text-lg font-bold text-slate-800">
+            Hospital Statistics
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Key performance indicators
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {dashboardStats.map((stat) => (
+            <StatCard
+              key={stat.id}
+              title={stat.title}
+              value={stat.value}
+              description={stat.description}
+              trend={stat.trend}
+              color={stat.color}
+              icon={statIcons[stat.iconName]}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Analytics Charts */}
+      <section>
+        <div className="mb-5">
+          <h2 className="text-lg font-bold text-slate-800">
+            Hospital Analytics
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Monitor appointments and department performance
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <AppointmentChart />
+          <DepartmentChart />
+        </div>
+      </section>
+
+      {/* Recent Activities */}
+      <section>
+        <RecentActivities />
+      </section>
+
     </div>
   );
 }
