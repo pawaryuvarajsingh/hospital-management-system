@@ -7,16 +7,22 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
 
 import Dashboard from "../pages/dashboard/Dashboard";
-import DashboardLayout from "../layouts/DashboardLayout";
+import Patients from "../pages/patients/Patients";
 
+import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
+
 import { useAuth } from "../context/AuthContext";
 
 function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="p-10 text-center">Loading...</div>;
+    return (
+      <div className="p-10 text-center">
+        Loading...
+      </div>
+    );
   }
 
   return isAuthenticated ? (
@@ -47,11 +53,13 @@ function ComingSoon() {
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Default Route */}
       <Route
         path="/"
         element={<Navigate to="/dashboard" replace />}
       />
 
+      {/* Authentication Routes */}
       <Route
         path="/login"
         element={
@@ -88,13 +96,23 @@ export default function AppRoutes() {
         }
       />
 
+      {/* Protected Application Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
+
+          <Route
+            path="/patients"
+            element={<Patients />}
+          />
+
+          {/* Upcoming Modules */}
           <Route path="*" element={<ComingSoon />} />
         </Route>
       </Route>
-
     </Routes>
   );
 }
