@@ -8,6 +8,7 @@ import ResetPassword from "../pages/auth/ResetPassword";
 
 import Dashboard from "../pages/dashboard/Dashboard";
 import Patients from "../pages/patients/Patients";
+import Doctors from "../pages/doctors/Doctors";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
@@ -19,7 +20,7 @@ function GuestRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="p-10 text-center">
+      <div className="p-10 text-center text-slate-600">
         Loading...
       </div>
     );
@@ -59,7 +60,7 @@ export default function AppRoutes() {
         element={<Navigate to="/dashboard" replace />}
       />
 
-      {/* Authentication Routes */}
+      {/* Guest Routes */}
       <Route
         path="/login"
         element={
@@ -96,7 +97,7 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Protected Application Routes */}
+      {/* Protected Dashboard Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route
@@ -104,13 +105,23 @@ export default function AppRoutes() {
             element={<Dashboard />}
           />
 
+          {/* Module 3 - Patient Management */}
           <Route
             path="/patients"
             element={<Patients />}
           />
 
+          {/* Module 4 - Doctor Management */}
+          <Route
+            path="/doctors"
+            element={<Doctors />}
+          />
+
           {/* Upcoming Modules */}
-          <Route path="*" element={<ComingSoon />} />
+          <Route
+            path="*"
+            element={<ComingSoon />}
+          />
         </Route>
       </Route>
     </Routes>
