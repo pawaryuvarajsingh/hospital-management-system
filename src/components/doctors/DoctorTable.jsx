@@ -28,6 +28,10 @@ export default function DoctorTable({
     }
   };
 
+  const getInitials = (doctor) => {
+    return `${doctor.firstName?.charAt(0) || ""}${doctor.lastName?.charAt(0) || ""}`;
+  };
+
   if (!doctors || doctors.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm">
@@ -48,7 +52,6 @@ export default function DoctorTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-
       {/* Table Heading */}
       <div className="flex flex-col justify-between gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center">
         <div>
@@ -69,7 +72,6 @@ export default function DoctorTable({
       {/* Scrollable Table */}
       <div className="max-h-125 overflow-auto">
         <table className="w-full min-w-212.5 border-collapse text-left">
-
           <thead className="sticky top-0 z-10 bg-slate-50">
             <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-5 py-4">Doctor</th>
@@ -82,20 +84,27 @@ export default function DoctorTable({
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-
             {doctors.map((doctor) => (
               <tr
                 key={doctor.id}
                 className="transition hover:bg-slate-50"
               >
-
                 {/* Doctor Information */}
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">
-                      {doctor.firstName?.charAt(0)}
-                      {doctor.lastName?.charAt(0)}
-                    </div>
+                    {doctor.profileImage ? (
+                      <img
+                        src={doctor.profileImage}
+                        alt={`Dr. ${doctor.firstName} ${doctor.lastName}`}
+                        className="h-12 w-12 shrink-0 rounded-full border-2 border-blue-100 object-cover shadow-sm"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-blue-100 bg-blue-50 text-sm font-bold text-blue-600">
+                        {getInitials(doctor) || (
+                          <FaUserDoctor className="text-lg" />
+                        )}
+                      </div>
+                    )}
 
                     <div>
                       <p className="whitespace-nowrap text-sm font-semibold text-slate-800">
@@ -148,7 +157,6 @@ export default function DoctorTable({
                 {/* Actions */}
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-center gap-2">
-
                     <button
                       type="button"
                       onClick={() => onView(doctor)}
@@ -175,13 +183,10 @@ export default function DoctorTable({
                     >
                       <FaTrash />
                     </button>
-
                   </div>
                 </td>
-
               </tr>
             ))}
-
           </tbody>
         </table>
       </div>
@@ -196,7 +201,6 @@ export default function DoctorTable({
           Hospital Management System
         </p>
       </div>
-
     </div>
   );
 }

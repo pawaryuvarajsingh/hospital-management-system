@@ -9,6 +9,7 @@ import ResetPassword from "../pages/auth/ResetPassword";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Patients from "../pages/patients/Patients";
 import Doctors from "../pages/doctors/Doctors";
+import Appointments from "../pages/appointments/Appointments";
 
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
@@ -54,13 +55,11 @@ function ComingSoon() {
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Default Route */}
       <Route
         path="/"
         element={<Navigate to="/dashboard" replace />}
       />
 
-      {/* Guest Routes */}
       <Route
         path="/login"
         element={
@@ -97,31 +96,21 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Protected Dashboard Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
+          <Route path="/dashboard" element={<Dashboard />} />
 
           {/* Module 3 - Patient Management */}
-          <Route
-            path="/patients"
-            element={<Patients />}
-          />
+          <Route path="/patients" element={<Patients />} />
 
           {/* Module 4 - Doctor Management */}
-          <Route
-            path="/doctors"
-            element={<Doctors />}
-          />
+          <Route path="/doctors" element={<Doctors />} />
+
+          {/* Module 5 - Appointment Management */}
+          <Route path="/appointments" element={<Appointments />} />
 
           {/* Upcoming Modules */}
-          <Route
-            path="*"
-            element={<ComingSoon />}
-          />
+          <Route path="*" element={<ComingSoon />} />
         </Route>
       </Route>
     </Routes>

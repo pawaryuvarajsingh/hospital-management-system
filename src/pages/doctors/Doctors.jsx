@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from "react";
 
 import {
@@ -17,15 +16,9 @@ import DoctorForm from "../../components/doctors/DoctorForm";
 import DoctorTable from "../../components/doctors/DoctorTable";
 import DoctorDetails from "../../components/doctors/DoctorDetails";
 
-import {
-  getDoctors,
-  addDoctor,
-  updateDoctor,
-  deleteDoctor,
-} from "../../services/doctorService";
-
 const STORAGE_KEY = "hms_doctors";
 const DELETED_KEY = "hms_deleted_doctors";
+const VERSION_KEY = "hms_doctors_version";
 
 const specializationOptions = [
   "Cardiology",
@@ -40,27 +33,138 @@ const specializationOptions = [
   "Psychiatry",
 ];
 
-const mapApiDoctor = (user) => {
-  const specialties = specializationOptions;
+// Separate sample doctor records.
+// These records are not fetched from the patient API.
+const initialDoctors = [
+  {
+    id: 101,
+    firstName: "Michael",
+    lastName: "Williams",
+    email: "michael.williams@hospital.com",
+    phone: "9876543210",
+    specialization: "Cardiology",
+    qualification: "MBBS, MD Cardiology",
+    experience: 12,
+    availability: "Available",
+    address: "Chennai, Tamil Nadu",
+  },
+  {
+    id: 102,
+    firstName: "Sophia",
+    lastName: "Brown",
+    email: "sophia.brown@hospital.com",
+    phone: "9876543211",
+    specialization: "Neurology",
+    qualification: "MBBS, DM Neurology",
+    experience: 10,
+    availability: "Available",
+    address: "Bengaluru, Karnataka",
+  },
+  {
+    id: 103,
+    firstName: "James",
+    lastName: "Anderson",
+    email: "james.anderson@hospital.com",
+    phone: "9876543212",
+    specialization: "Dermatology",
+    qualification: "MBBS, MD Dermatology",
+    experience: 8,
+    availability: "On Leave",
+    address: "Hyderabad, Telangana",
+  },
+  {
+    id: 104,
+    firstName: "Olivia",
+    lastName: "Martin",
+    email: "olivia.martin@hospital.com",
+    phone: "9876543213",
+    specialization: "Pediatrics",
+    qualification: "MBBS, MD Pediatrics",
+    experience: 9,
+    availability: "Available",
+    address: "Mumbai, Maharashtra",
+  },
+  {
+    id: 105,
+    firstName: "William",
+    lastName: "Taylor",
+    email: "william.taylor@hospital.com",
+    phone: "9876543214",
+    specialization: "Orthopedics",
+    qualification: "MBBS, MS Orthopedics",
+    experience: 15,
+    availability: "Available",
+    address: "Delhi, India",
+  },
+  {
+    id: 106,
+    firstName: "Isabella",
+    lastName: "Thomas",
+    email: "isabella.thomas@hospital.com",
+    phone: "9876543215",
+    specialization: "Gynecology",
+    qualification: "MBBS, MS Gynecology",
+    experience: 7,
+    availability: "On Leave",
+    address: "Pune, Maharashtra",
+  },
+  {
+    id: 107,
+    firstName: "Benjamin",
+    lastName: "Jackson",
+    email: "benjamin.jackson@hospital.com",
+    phone: "9876543216",
+    specialization: "Ophthalmology",
+    qualification: "MBBS, MS Ophthalmology",
+    experience: 11,
+    availability: "Available",
+    address: "Kochi, Kerala",
+  },
+  {
+    id: 108,
+    firstName: "Charlotte",
+    lastName: "White",
+    email: "charlotte.white@hospital.com",
+    phone: "9876543217",
+    specialization: "ENT",
+    qualification: "MBBS, MS ENT",
+    experience: 6,
+    availability: "Available",
+    address: "Vijayawada, Andhra Pradesh",
+  },
+  {
+    id: 109,
+    firstName: "Daniel",
+    lastName: "Harris",
+    email: "daniel.harris@hospital.com",
+    phone: "9876543218",
+    specialization: "Psychiatry",
+    qualification: "MBBS, MD Psychiatry",
+    experience: 13,
+    availability: "Available",
+    address: "Coimbatore, Tamil Nadu",
+  },
+  {
+    id: 110,
+    firstName: "Emily",
+    lastName: "Clark",
+    email: "emily.clark@hospital.com",
+    phone: "9876543219",
+    specialization: "General Medicine",
+    qualification: "MBBS, MD General Medicine",
+    experience: 5,
+    availability: "Available",
+    address: "Hyderabad, Telangana",
+  },
+];
 
-  return {
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    phone: user.phone,
-    specialization: specialties[(user.id - 1) % specialties.length],
-    qualification: "MBBS, MD",
-    experience: 2 + (user.id % 25),
-    availability: user.id % 5 === 0 ? "On Leave" : "Available",
-    address: [
-      user.address?.address,
-      user.address?.city,
-      user.address?.state,
-    ]
-      .filter(Boolean)
-      .join(", "),
-  };
+const readStorage = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 export default function Doctors() {
@@ -81,44 +185,60 @@ export default function Doctors() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [doctorToDelete, setDoctorToDelete] = useState(null);
 
-  // Save doctor records in localStorage
+  // Save doctors in localStorage.
   const saveDoctors = (updatedDoctors) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDoctors));
-    setDoctors(updatedDoctors);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDoctors));
+      setDoctors(updatedDoctors);
+      return true;
+    } catch (error) {
+      console.error("Error saving doctors:", error);
+      toast.error("Unable to save doctor records.");
+      return false;
+    }
   };
 
-  // Load doctor records
+  // Load the separate doctor records.
   const loadDoctors = useCallback(async () => {
     try {
       setLoading(true);
 
-      const savedDoctors = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "null"
-      );
+      const savedDoctors = readStorage(STORAGE_KEY, null);
+      const version = localStorage.getItem(VERSION_KEY);
 
-      if (savedDoctors) {
+      // Replace the old shared DummyJSON doctor list once.
+      if (version !== "2") {
+        const locallyAddedDoctors = Array.isArray(savedDoctors)
+          ? savedDoctors.filter(
+              (doctor) =>
+                typeof doctor.id === "string" &&
+                doctor.id.startsWith("LOCAL-")
+            )
+          : [];
+
+        const deletedIds = readStorage(DELETED_KEY, []);
+
+        const separateDoctors = [
+          ...initialDoctors.filter(
+            (doctor) => !deletedIds.includes(doctor.id)
+          ),
+          ...locallyAddedDoctors,
+        ];
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(separateDoctors));
+        localStorage.setItem(VERSION_KEY, "2");
+
+        setDoctors(separateDoctors);
+      } else if (Array.isArray(savedDoctors)) {
         setDoctors(savedDoctors);
       } else {
-        const response = await getDoctors();
-        const mappedDoctors = response.map(mapApiDoctor);
-
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(mappedDoctors)
-        );
-
-        setDoctors(mappedDoctors);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialDoctors));
+        setDoctors(initialDoctors);
       }
     } catch (error) {
       console.error("Error loading doctors:", error);
-
-      const savedDoctors = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "[]"
-      );
-
-      setDoctors(savedDoctors);
-
-      toast.error("Unable to load doctors. Please try refreshing.");
+      toast.error("Unable to load doctor records.");
+      setDoctors([]);
     } finally {
       setLoading(false);
     }
@@ -128,27 +248,19 @@ export default function Doctors() {
     loadDoctors();
   }, [loadDoctors]);
 
-  // Refresh doctor records from API
+  // Refresh the separate doctor list while preserving local edits.
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
 
-      const response = await getDoctors();
-      const apiDoctors = response.map(mapApiDoctor);
-
-      const savedDoctors = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "[]"
-      );
-
-      const deletedIds = JSON.parse(
-        localStorage.getItem(DELETED_KEY) || "[]"
-      );
+      const savedDoctors = readStorage(STORAGE_KEY, []);
+      const deletedIds = readStorage(DELETED_KEY, []);
 
       const savedDoctorMap = new Map(
         savedDoctors.map((doctor) => [doctor.id, doctor])
       );
 
-      const refreshedDoctors = apiDoctors
+      const refreshedDoctors = initialDoctors
         .filter((doctor) => !deletedIds.includes(doctor.id))
         .map((doctor) =>
           savedDoctorMap.has(doctor.id)
@@ -156,10 +268,10 @@ export default function Doctors() {
             : doctor
         );
 
-      const apiIds = apiDoctors.map((doctor) => doctor.id);
+      const initialIds = initialDoctors.map((doctor) => doctor.id);
 
       const locallyAddedDoctors = savedDoctors.filter(
-        (doctor) => !apiIds.includes(doctor.id)
+        (doctor) => !initialIds.includes(doctor.id)
       );
 
       const finalDoctors = [
@@ -167,9 +279,9 @@ export default function Doctors() {
         ...locallyAddedDoctors,
       ];
 
-      saveDoctors(finalDoctors);
-
-      toast.success("Doctor records refreshed successfully.");
+      if (saveDoctors(finalDoctors)) {
+        toast.success("Doctor records refreshed successfully.");
+      }
     } catch (error) {
       console.error("Error refreshing doctors:", error);
       toast.error("Unable to refresh doctor records.");
@@ -178,19 +290,19 @@ export default function Doctors() {
     }
   };
 
-  // Open add doctor form
+  // Open add doctor form.
   const handleOpenAdd = () => {
     setEditingDoctor(null);
     setIsFormOpen(true);
   };
 
-  // Open edit doctor form
+  // Open edit doctor form.
   const handleEdit = (doctor) => {
     setEditingDoctor(doctor);
     setIsFormOpen(true);
   };
 
-  // Close doctor form
+  // Close doctor form.
   const handleCloseForm = () => {
     if (saving) return;
 
@@ -198,7 +310,7 @@ export default function Doctors() {
     setEditingDoctor(null);
   };
 
-  // Add or update doctor
+  // Add or update doctor.
   const handleFormSubmit = async (formData) => {
     try {
       setSaving(true);
@@ -210,47 +322,28 @@ export default function Doctors() {
           experience: Number(formData.experience),
         };
 
-        if (Number(editingDoctor.id) <= 100) {
-          await updateDoctor(editingDoctor.id, formData);
-        }
-
         const updatedDoctors = doctors.map((doctor) =>
           doctor.id === editingDoctor.id ? updatedDoctor : doctor
         );
 
-        saveDoctors(updatedDoctors);
-
-        toast.success("Doctor updated successfully.");
-      } else {
-        let newDoctor;
-
-        try {
-          const response = await addDoctor(formData);
-
-          newDoctor = {
-            ...formData,
-            id: `LOCAL-${Date.now()}`,
-            experience: Number(formData.experience),
-          };
-
-          console.log("Demo API response:", response);
-        } catch (error) {
-          console.error("Demo API add failed:", error);
-
-          newDoctor = {
-            ...formData,
-            id: `LOCAL-${Date.now()}`,
-            experience: Number(formData.experience),
-          };
+        if (saveDoctors(updatedDoctors)) {
+          toast.success("Doctor updated successfully.");
+          setIsFormOpen(false);
+          setEditingDoctor(null);
         }
+      } else {
+        const newDoctor = {
+          ...formData,
+          id: `LOCAL-${Date.now()}`,
+          experience: Number(formData.experience),
+        };
 
-        saveDoctors([newDoctor, ...doctors]);
-
-        toast.success("Doctor added successfully.");
+        if (saveDoctors([newDoctor, ...doctors])) {
+          toast.success("Doctor added successfully.");
+          setIsFormOpen(false);
+          setEditingDoctor(null);
+        }
       }
-
-      setIsFormOpen(false);
-      setEditingDoctor(null);
     } catch (error) {
       console.error("Error saving doctor:", error);
       toast.error("Unable to save doctor details.");
@@ -259,7 +352,7 @@ export default function Doctors() {
     }
   };
 
-  // Delete doctor
+  // Delete doctor.
   const handleDeleteDoctor = async () => {
     if (!doctorToDelete) return;
 
@@ -268,29 +361,23 @@ export default function Doctors() {
 
       const doctorId = doctorToDelete.id;
 
-      if (Number(doctorId) <= 100) {
-        await deleteDoctor(doctorId);
-      }
-
       const updatedDoctors = doctors.filter(
         (doctor) => doctor.id !== doctorId
       );
 
-      const deletedIds = JSON.parse(
-        localStorage.getItem(DELETED_KEY) || "[]"
-      );
+      if (typeof doctorId === "number") {
+        const deletedIds = readStorage(DELETED_KEY, []);
 
-      if (Number(doctorId) <= 100) {
         localStorage.setItem(
           DELETED_KEY,
           JSON.stringify([...new Set([...deletedIds, doctorId])])
         );
       }
 
-      saveDoctors(updatedDoctors);
-      setDoctorToDelete(null);
-
-      toast.success("Doctor deleted successfully.");
+      if (saveDoctors(updatedDoctors)) {
+        setDoctorToDelete(null);
+        toast.success("Doctor deleted successfully.");
+      }
     } catch (error) {
       console.error("Error deleting doctor:", error);
       toast.error("Unable to delete doctor.");
@@ -299,7 +386,7 @@ export default function Doctors() {
     }
   };
 
-  // Search and filter doctors
+  // Search and filter doctors.
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doctor) => {
       const search = searchText.toLowerCase().trim();
@@ -344,7 +431,7 @@ export default function Doctors() {
     availabilityFilter,
   ]);
 
-  // Pagination
+  // Pagination.
   const totalPages = Math.max(
     1,
     Math.ceil(filteredDoctors.length / pageSize)
@@ -364,7 +451,7 @@ export default function Doctors() {
     pageSize,
   ]);
 
-  // Doctor statistics
+  // Doctor statistics.
   const availableCount = doctors.filter(
     (doctor) => doctor.availability === "Available"
   ).length;
@@ -379,7 +466,6 @@ export default function Doctors() {
 
   return (
     <div className="space-y-6">
-
       {/* Page Heading */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
@@ -422,7 +508,6 @@ export default function Doctors() {
 
       {/* Statistics */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -486,7 +571,6 @@ export default function Doctors() {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Search and Filters */}
@@ -502,7 +586,6 @@ export default function Doctors() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-
           <div className="relative">
             <FaMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
 
@@ -543,7 +626,6 @@ export default function Doctors() {
             <option value="Unavailable">Unavailable</option>
             <option value="On Leave">On Leave</option>
           </select>
-
         </div>
       </div>
 
@@ -567,7 +649,6 @@ export default function Doctors() {
 
           {/* Pagination */}
           <div className="flex flex-col items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm sm:flex-row">
-
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <span>Rows per page:</span>
 
@@ -622,7 +703,6 @@ export default function Doctors() {
                 Next
               </button>
             </div>
-
           </div>
         </>
       )}
@@ -646,7 +726,6 @@ export default function Doctors() {
       {doctorToDelete && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-
             <div className="flex flex-col items-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
                 <FaTrash className="text-2xl text-red-600" />
@@ -694,12 +773,10 @@ export default function Doctors() {
                   {saving ? "Deleting..." : "Yes, Delete"}
                 </button>
               </div>
-
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
